@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout android:layout_height="75dp" android:layout_width="match_parent"
+    android:layout_gravity="bottom"
+    android:gravity="center"
+    android:layout_marginBottom="65dp"
+    xmlns:android="http://schemas.android.com/apk/res/android" >
+            android:layout_above="@+id/belowBar">
+            <ImageButton
+                android:layout_width="70dp"
+                android:layout_height="70dp"
+                android:layout_marginStart="20dp"
+                android:id="@+id/primaryContact"
+                android:src="@drawable/contact"
+                android:elevation="5dp"
+                android:layout_centerVertical="true"
+                android:background="@drawable/contacts_background"
+                android:layout_marginEnd="25dp"/>
+            <ImageButton
+                android:layout_width="70dp"
+                android:layout_height="70dp"
+                android:id="@+id/police"
+                android:src="@drawable/police"
+                android:elevation="5dp"
+                android:layout_toEndOf="@id/primaryContact"
+                android:layout_centerVertical="true"
+                android:background="@drawable/contacts_background"
+                android:layout_marginEnd="25dp"/>
+            <ImageButton
+                android:layout_width="70dp"
+                android:layout_height="70dp"
+                android:id="@+id/ambulance"
+                android:src="@drawable/ambulance"
+                android:layout_toEndOf="@+id/police"
+                android:elevation="5dp"
+                android:layout_centerVertical="true"
+                android:background="@drawable/contacts_background"
+                android:layout_marginEnd="25dp"/>
+            <ImageButton
+                android:layout_width="70dp"
+                android:layout_height="70dp"
+                android:id="@+id/fire"
+                android:src="@drawable/fire"
+                android:elevation="5dp"
+                android:background="@drawable/contacts_background"
+                android:layout_toEndOf="@+id/ambulance"
+                android:layout_centerVertical="true"
+                android:layout_marginEnd="25dp"/>
+</RelativeLayout>

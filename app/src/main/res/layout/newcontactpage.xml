@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/newContactPage"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:clipToOutline="true">
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="60dp"
+        android:id="@+id/topBar"
+        android:background="@drawable/action_bar_background">
+
+        <ImageButton
+            android:id="@+id/appLogo"
+            android:layout_width="wrap_content"
+            android:layout_height="49dp"
+            android:layout_centerVertical="true"
+            android:layout_marginLeft="1dp"
+            android:background="@drawable/action_bar_background"
+            android:src="@drawable/back_arrow" />
+
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="45dp"
+            android:layout_centerHorizontal="true"
+            android:layout_gravity="center"
+            android:layout_marginLeft="80dp"
+            android:layout_toRightOf="@+id/appLogo"
+            android:gravity="center"
+            android:paddingTop="10dp"
+            android:text="Add new contact"
+            android:textColor="#FFF"
+            android:textSize="25dp" />
+
+    </RelativeLayout>
+
+    <RelativeLayout
+        android:layout_marginTop="60dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <ImageView
+            android:id="@+id/picture"
+            android:layout_marginTop="50dp"
+            android:layout_marginBottom="50dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:src="@drawable/add_contact"/>
+
+        <EditText
+            android:layout_below="@+id/picture"
+            android:id="@+id/nameEntry"
+            android:layout_width="247dp"
+            android:layout_height="40dp"
+            android:layout_marginBottom="20dp"
+            android:layout_centerInParent="true"
+            android:background="@drawable/rectangle_border"
+            android:fontFamily="sans-serif"
+            android:gravity="center"
+            android:hint="Enter name"
+            android:inputType="text" />
+
+        <EditText
+            android:layout_below="@+id/nameEntry"
+            android:id="@+id/numberEntry"
+            android:layout_width="247dp"
+            android:layout_height="40dp"
+            android:layout_marginBottom="50dp"
+            android:layout_centerInParent="true"
+            android:background="@drawable/rectangle_border"
+            android:fontFamily="sans-serif"
+            android:gravity="center"
+            android:hint="Enter Phone number"
+            android:inputType="phone" />
+
+        <Button
+            android:id="@+id/save_button"
+            android:onClick="savebtnclk"
+            android:layout_below="@+id/numberEntry"
+            android:layout_centerInParent="true"
+            android:layout_width="250dp"
+            android:layout_height="50dp"
+            android:textSize="25dp"
+            android:background="@drawable/button_background"
+            android:textColor="#FFFFFF"
+            android:text="save contact" />
+
+    </RelativeLayout>
+
+
+
+
+
+</RelativeLayout>
