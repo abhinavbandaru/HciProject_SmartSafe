@@ -6,6 +6,7 @@ import androidx.core.app.ActivityCompat;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.View;
 import android.widget.Button;
 
@@ -23,8 +24,7 @@ public class MainActivity extends AppCompatActivity {
     SignInButton googleSignInButton;
     GoogleSignInClient mGoogleSignInClient;
     private int RC_SIGN_IN = 0;
-    String[] permissions = {"android.permission.READ_EXTERNAL_STORAGE",
-            "android.permission.WRITE_EXTERNAL_STORAGE", "android.permission.ACCESS_FINE_LOCATION",
+    String[] permissions = { "android.permission.ACCESS_FINE_LOCATION",
             "android.permission.SEND_SMS", "android.permission.INTERNET",
             "android.permission.ACCESS_COARSE_LOCATION","android.permission.CALL_PHONE"};
     @Override
@@ -94,4 +94,6 @@ public class MainActivity extends AppCompatActivity {
             Log.w("SignIn Failed", "signInResult:failed code=" + e.getStatusCode());
         }
     }
+
+
 }

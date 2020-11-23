@@ -11,14 +11,19 @@ import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Message;
+import android.os.SystemClock;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
 import android.telephony.SmsManager;
+import android.util.Log;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.Window;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
-import android.widget.RelativeLayout;
 import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -33,9 +38,15 @@ import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 
+import java.util.Objects;
+
 
 public class HomePage extends AppCompatActivity {
     Button sosButton, logoutButton;
+    public Boolean silentPanicRunning = false, countdownInterrupted = false, panicRunning = false,
+            countdownRunning = false;
+    Vibrator vibrator;
+    boolean volumeDown = false, volumeUp = false;
     ImageButton logoButton, settingsButton, dotsButton, phoneButton, messagesButton, contactsButton;
     GoogleSignInClient mGoogleSignInClient;
     AudioManager audioManager;
@@ -44,10 +55,9 @@ public class HomePage extends AppCompatActivity {
     private AlertDialog dialog;
     String truePass, falsePass;
     int cnt = 0, flag = 0, flag2 = 0;
+    Thread countdownThread;
     private Handler handler;
     private LocationManager locationManager;
-    private String latitude, longitude;
-    RelativeLayout appLayout;
     String[] permissions = {"android.permission.READ_EXTERNAL_STORAGE",
             "android.permission.WRITE_EXTERNAL_STORAGE", "android.permission.ACCESS_FINE_LOCATION",
             "android.permission.SEND_SMS", "android.permission.INTERNET",
@@ -60,6 +70,7 @@ public class HomePage extends AppCompatActivity {
         setContentView(R.layout.homepage);
         ActionBar actionBar=getSupportActionBar();
         actionBar.hide();
+        flag = 0;
         checkPermission();
         GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
                 .requestEmail()
@@ -74,21 +85,20 @@ public class HomePage extends AppCompatActivity {
         sosButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if("sos".equals(sosButton.getText().toString())) {
-                    panicRunnable.run();
-                    sosButton.setText("stop");
-                    sosButton.setTextSize(50);
+                if(panicRunning || silentPanicRunning){
+                    showDialogCheckPassword();
                 } else {
-                    showDia();
+                    panicRunnable.run();
                 }
             }
         });
         messagesButton = findViewById(R.id.openMessages);
+            vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
         logoutButton = findViewById(R.id.logout);
         logoutButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                signOut();
+                googleSignOut();
             }
         });
         logoButton = findViewById(R.id.appLogo);
@@ -96,26 +106,10 @@ public class HomePage extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 flag = 1;
-                showDia();
+                showDialogCheckPassword();
             }
         });
         settingsButton = findViewById(R.id.appSettings);
-        dotsButton = findViewById(R.id.dots);
-        dotsButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                logoutButton.setAlpha((float) 1);
-                logoutButton.setClickable(true);
-            }
-        });
-        appLayout = findViewById(R.id.appLayout);
-        appLayout.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                logoutButton.setAlpha((float) 0);
-                logoutButton.setClickable(false);
-            }
-        });
         phoneButton = findViewById(R.id.callContact);
         phoneButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -123,6 +117,20 @@ public class HomePage extends AppCompatActivity {
                 Intent callIntent = new Intent(Intent.ACTION_CALL);
                 callIntent.setData(Uri.parse("tel:"+emergencyContact));
                 startActivity(callIntent);
+            }
+        });
+        dotsButton = findViewById(R.id.dots);
+        dotsButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                flag++;
+                if(flag%2 == 1) {
+                    logoutButton.setAlpha((float) 1);
+                    logoutButton.setClickable(true);
+                } else {
+                    logoutButton.setAlpha((float) 0);
+                    logoutButton.setClickable(false);
+                }
             }
         });
         contactsButton = findViewById(R.id.openContacts);
@@ -141,7 +149,7 @@ public class HomePage extends AppCompatActivity {
         ActivityCompat.requestPermissions(this, this.permissions, 1);
     }
 
-    private void showDia() {
+    private void showDialogCheckPassword() {
         AlertDialog.Builder alert;
         alert = new AlertDialog.Builder(HomePage.this, android.R.style.Theme_DeviceDefault_Dialog_Alert);
         LayoutInflater inflater = getLayoutInflater();
@@ -149,11 +157,11 @@ public class HomePage extends AppCompatActivity {
         alert.setView(view);
         alert.setCancelable(true);
         dialog = alert.create();
-        dialog.getWindow().requestFeature(Window.FEATURE_NO_TITLE);
+        Objects.requireNonNull(dialog.getWindow()).requestFeature(Window.FEATURE_NO_TITLE);
         dialog.show();
     }
 
-    private void signOut() {
+    private void googleSignOut() {
         mGoogleSignInClient.signOut()
                 .addOnCompleteListener(this, new OnCompleteListener<Void>() {
                     @Override
@@ -167,24 +175,26 @@ public class HomePage extends AppCompatActivity {
     private Runnable panicRunnable = new Runnable() {
         @Override
         public void run() {
+            System.out.println("In panicRunnable " + panicRunning);
+            System.out.println("In panicRunnable (not returned) " + countdownRunning);
+            countdownRunning = false;
+            panicRunning = true;
+            sosButton.setText("stop");
+            sosButton.setTextSize(50);
             audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC), 0);
             mediaPlayer = MediaPlayer.create(HomePage.this, R.raw.siren);
             messagesButton.setAlpha((float) 0);
             messagesButton.setClickable(false);
-            //mediaPlayer.start();
+            mediaPlayer.start();
             if (ActivityCompat.checkSelfPermission(HomePage.this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
                 ActivityCompat.checkSelfPermission(HomePage.this, Manifest.permission.ACCESS_COARSE_LOCATION);
             }
             Location locationGPS = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-            if (locationGPS != null && cnt % 10 == 0) {
-                double lat = locationGPS.getLatitude();
-                double longi = locationGPS.getLongitude();
-                latitude = String.valueOf(lat);
-                longitude = String.valueOf(longi);
+            if (locationGPS != null && cnt % 5 == 0) {
                 sendLocationSMS(locationGPS);
             }
             cnt++;
-            handler.postDelayed(panicRunnable, 9000);
+            handler.postDelayed(panicRunnable, 1000);
         }
     };
 
@@ -203,15 +213,13 @@ public class HomePage extends AppCompatActivity {
     private Runnable silentPanic = new Runnable() {
         @Override
         public void run() {
+            silentPanicRunning = true;
+            panicRunning = false;
             if (ActivityCompat.checkSelfPermission(HomePage.this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
                 ActivityCompat.checkSelfPermission(HomePage.this, Manifest.permission.ACCESS_COARSE_LOCATION);
             }
             Location locationGPS = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
             if (locationGPS != null && cnt%30 == 0) {
-                double lat = locationGPS.getLatitude();
-                double longi = locationGPS.getLongitude();
-                latitude = String.valueOf(lat);
-                longitude = String.valueOf(longi);
                 sendLocationSMS(locationGPS);
             }
             cnt++;
@@ -219,44 +227,64 @@ public class HomePage extends AppCompatActivity {
         }
     };
 
-    public void loginbtnclk(View view){
+    public void stopPanic(){
+        panicRunning = false;
+        silentPanicRunning = false;
+        handler.removeCallbacks(panicRunnable);
+        mediaPlayer.stop();
+        sosButton.setText("sos");
+        sosButton.setTextSize(70);
+        cnt = 0;
+        Toast.makeText(HomePage.this, "true pass!", Toast.LENGTH_SHORT).show();
+        dialog.dismiss();
+    }
+
+    public void passwordCheck(View view){
         EditText password = dialog.findViewById(R.id.passcode);
         String pass = password.getText().toString();
         password.setText("");
-        if(flag==0) {
-            if (pass.equals(truePass)) {
-                handler.removeCallbacks(panicRunnable);
-                mediaPlayer.stop();
-                sosButton.setText("sos");
-                sosButton.setTextSize(70);
-                cnt = 0;
-                Toast.makeText(HomePage.this, "true pass!", Toast.LENGTH_SHORT).show();
-            } else if (pass.equals(falsePass)) {
-                handler.removeCallbacks(panicRunnable);
-                mediaPlayer.stop();
-                sosButton.setText("sos");
-                sosButton.setTextSize(70);
-                cnt = 0;
-                Toast.makeText(HomePage.this, "false pass!", Toast.LENGTH_SHORT).show();
+        if(panicRunning){
+            if(pass.equals(truePass)){
+                stopPanic();
+            }
+            else if(pass.equals(falsePass)){
+                stopPanic();
                 silentPanic.run();
-            } else {
+            } else{
                 Toast.makeText(HomePage.this, "Wrong Password", Toast.LENGTH_SHORT).show();
             }
-            dialog.dismiss();
-            return;
         }
-        flag = 0;
-        if (pass.equals(truePass)) {
-            messagesButton.setAlpha((float) 1);
-            messagesButton.setClickable(true);
-        } else if (pass.equals(falsePass)) {
-            Toast.makeText(HomePage.this, "Hello from team SuperUsers!", Toast.LENGTH_SHORT).show();
-        } else {
-            Toast.makeText(HomePage.this, "Wrong Password", Toast.LENGTH_SHORT).show();
+        else if (silentPanicRunning){
+            if(pass.equals(truePass)){
+                stopPanic();
+                Toast.makeText(HomePage.this, "Silent Panic Stopped", Toast.LENGTH_SHORT).show();
+            } else{
+                Toast.makeText(HomePage.this, "Wrong Password", Toast.LENGTH_SHORT).show();
+            }
         }
-        dialog.dismiss();
     }
-    public void cancelbtnclk(View view){
-        dialog.dismiss();
+
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if (keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) {
+            volumeDown = true;
+        }
+        if (keyCode == KeyEvent.KEYCODE_VOLUME_UP) {
+            volumeUp = true;
+        }
+        if(volumeUp && volumeDown){
+            panicRunnable.run();
+        }
+        return true;
+    }
+
+    @Override
+    public boolean onKeyUp(int keyCode, KeyEvent event) {
+        if (keyCode == KeyEvent.KEYCODE_VOLUME_DOWN){
+            volumeDown = false;
+        } else if(keyCode == KeyEvent.KEYCODE_VOLUME_UP){
+            volumeUp = false;
+        }
+        return true;
     }
 }
